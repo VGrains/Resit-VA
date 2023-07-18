@@ -39,7 +39,7 @@ df['longitude'] = df['longitude'].astype(float)
 ## Help
 app.layout = html.Div([ 
     html.Div([
-    html.H1('Article Analysis & Clustering', style={'padding':'20px', 'textAlign': 'center'})
+    html.H1('Forest Fire Analysis', style={'padding':'20px', 'textAlign': 'center'})
     ]),
 
     dbc.Row([
@@ -99,7 +99,7 @@ app.layout = html.Div([
 
 @app.callback(
     Output("heatmap", component_property='srcDoc'),
-    Input("test", component_property="children")
+    Input("drop", component_property="value")
 )
 
 def update_map(children):
@@ -122,7 +122,6 @@ def update_state_map(children):
 )
 
 def update_polar_plot(dropdown_value, hov_data):
-    print(dropdown_value)
     if dropdown_value == 'Total fires':
         if hov_data is None:
             fig = data.create_polar_plot(df)
