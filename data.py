@@ -65,16 +65,19 @@ def create_state_map(df):
 
     return fig
 
-def create_polar_plot(df):
+def create_polar_plot(df, avg_fire_size=False):
     # Define a mapping to convert month names to numeric representation
     month_to_number = {
         'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
         'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
     }
 
-    df1 = copy.copy(df[['discovery_month', 'state']])
+    df1 = copy.copy(df[['discovery_month', 'fire_size']])
 
-    df2 = df1.groupby('discovery_month').count().reset_index()
+    if avg_fire_size == False:
+        df2 = df1.groupby('discovery_month').count().reset_index()
+    else:
+        df2 = df1.groupby('discovery_month').mean().reset_index()
 
     custom_month_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -84,6 +87,6 @@ def create_polar_plot(df):
     df2
 
     # # # df2['state'] = df2['state'].astype(int)
-    fig = px.line_polar(df2, r=df2['state'], theta=df2['discovery_month'],line_close=True,template="plotly_dark",)
+    fig = px.line_polar(df2, r=df2['fire_size'], theta=df2['discovery_month'],line_close=True,template="plotly_dark",)
     
     return fig

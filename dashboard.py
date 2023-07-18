@@ -73,6 +73,13 @@ app.layout = html.Div([
             #     html.H4("Classified cluster: ", id='cluster_classification', style={'border': '1px solid smokegray', 'text-align': 'center'}),
             #     html.H4("Cluster top keywords: ", id='cluster_classification_keywords', style={'border': '1px solid smokegray', 'text-align': 'center'})
             # ]),
+            
+            dcc.Dropdown(
+                ['Total fires', 'Avg fire size'],
+                'Total fires',
+                id='drop', 
+                clearable=False
+            ),
             dcc.Graph(
                 id="polar", 
                 figure={}, 
@@ -110,18 +117,30 @@ def update_state_map(children):
 
 @app.callback(
     Output("polar", component_property='figure'),
-    Input("test", component_property="children"),
+    Input("drop", component_property="value"),
     Input("state_map", component_property='hoverData')
 )
 
-def update_polar_plot(children, hov_data):
-    if hov_data is None:
-        fig = data.create_polar_plot(df)
-    else:
-        print(hov_data)
-        hov_location = hov_data['points'][0]['location']
-        df_hov = df[df.state == hov_location]
-        fig = data.create_polar_plot(df_hov)
+def update_polar_plot(dropdown_value, hov_data):
+    print(dropdown_value)
+    if dropdown_value == 'Total fires':
+        if hov_data is None:
+            fig = data.create_polar_plot(df)
+        
+        elif hov_data is not None:
+            hov_location = hov_data['points'][0]['location']
+            df_hov = df[df.state == hov_location]
+            fig = data.create_polar_plot(df_hov)
+
+    elif dropdown_value == 'Avg fire size':
+        if hov_data is None:
+            fig = data.create_polar_plot(df, avg_fire_size=True)
+        
+        elif hov_data is not None:
+            hov_location = hov_data['points'][0]['location']
+            df_hov = df[df.state == hov_location]
+            fig = data.create_polar_plot(df_hov, avg_fire_size=True)
+    
     return fig
 
 
