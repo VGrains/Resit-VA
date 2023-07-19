@@ -49,7 +49,6 @@ def create_state_map(df):
     df4 = copy.copy(df[['state', 'fire_size']])
 
     df4 = df4.groupby('state').count().reset_index()
-    df4
     fig = go.Figure(data=go.Choropleth(
         locations=df4['state'], # Spatial coordinates
         z = df4['fire_size'].astype(float), # Data to be color-coded
@@ -60,8 +59,17 @@ def create_state_map(df):
 
     fig.update_layout(
         title_text = 'Forest fires per state',
-        geo_scope='usa', # limite map scope to USA
+        geo=dict(
+            scope='usa',  # limit map scope to USA
+            bgcolor='#242424',  # Set the background color of the map area
+            showframe=False,
+            showland=False,
+            showcountries=True
+        ),
+        paper_bgcolor='#242424',
+        font=dict(color='lightgrey')
     )
+
 
     return fig
 
@@ -87,6 +95,32 @@ def create_polar_plot(df, avg_fire_size=False):
     df2
 
     # # # df2['state'] = df2['state'].astype(int)
-    fig = px.line_polar(df2, r=df2['fire_size'], theta=df2['discovery_month'],line_close=True,template="plotly_dark",)
+    fig = px.line_polar(df2, r=df2['fire_size'], theta=df2['discovery_month'],line_close=True)
+    fig.update_layout(
+    paper_bgcolor='#242424',
+    polar=dict(
+        bgcolor='#474747',  # Set the background color of the polar plot area
+    ),
+    font=dict(color='lightgrey')
+    )
+    fig.update_traces(line_color='#cc4e5b', line_width=5)
     
+    return fig
+
+def create_bar_plot(df):
+    df5 = copy.copy(df[['stat_cause_descr', 'fire_size']])
+
+    df5 = df5.groupby('stat_cause_descr').count().reset_index()
+
+    fig = px.bar(df5, x='stat_cause_descr', y='fire_size', text_auto='.2s')
+
+    fig.update_layout(
+        paper_bgcolor='#242424',
+        plot_bgcolor='#242424',  # Set the background color of the polar plot area
+        font=dict(color='lightgrey'),
+        yaxis=dict(gridcolor='#474747'), # Set the color of the grid lines along the x-axis
+        )
+
+    fig.update_traces(marker_color='#cc4e5b', marker=dict(line=dict(width=0)))
+
     return fig
