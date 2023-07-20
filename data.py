@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import MinMaxScaler, StandardScaler,LabelEncoder
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import PCA
 import folium
 from folium.plugins import HeatMap, HeatMapWithTime
@@ -12,6 +13,7 @@ import sqlite3
 import plotly.graph_objects as go
 import plotly.express as px
 import copy
+
 
 
 def create_heatmap_with_circles(df):
@@ -43,6 +45,57 @@ def create_heatmap_with_circles(df):
         ).add_to(map_obj)
 
     map_obj.save('heatmap.html')
+
+def create_fire_map(df, mapbox_access_token, mapbox_style_url):
+    
+    
+    # Define a dictionary to map fire_size_class values to specific colors
+    color_mapping = {
+        'B': '#636EFA',
+        'C': '#EF553B',
+        'D': '#00CC96',
+        'E': '#AB63FA',
+        'F': '#FFA15A',
+        'G': '#19D3F3',
+        # Add more mappings as needed based on your data
+    }
+
+    marker_colors = df["fire_size_class"].map(color_mapping)
+
+    # Create the scatter mapbox trace
+    scattermapbox_trace = go.Scattermapbox(
+        lat=df["latitude"],
+        lon=df["longitude"],
+        mode="markers",
+        marker=dict(size=4, color=marker_colors, sizemode="diameter"),
+        hovertext=df["fire_name"],
+        hoverinfo="text",
+        text=df["fire_size"],
+        hoverlabel=dict(namelength=0),  # Hide hover label name
+        # customdata=df["fire_size_class"],  # Use customdata to store fire_size_class for coloring
+        # # marker_color=df["fire_size_class"],  # Color code based on fire size class variable
+        # colorscale="Viridis",  # Choose a colorscale for coloring
+        # colorbar_title="Fire Size Class",
+    )
+
+    # Create the layout for the map
+    map_layout = go.Layout(
+        uirevision='foo',
+        mapbox=dict(
+            accesstoken=mapbox_access_token,  # Set the Mapbox access token here
+            center=dict(lat=39.8283, lon=-98.5795),
+            zoom=4,
+            style='dark',  # Set the URL of your custom Mapbox style JSON file here
+        ),
+        height=800,
+        margin=dict(r=0, t=0, l=0, b=0),
+        showlegend=False,
+    )
+
+    # Create the map figure
+    fig = go.Figure(data=[scattermapbox_trace], layout=map_layout)
+    
+    return fig
 
 def create_state_map(df):
 
@@ -124,3 +177,33 @@ def create_bar_plot(df):
     fig.update_traces(marker_color='#cc4e5b', marker=dict(line=dict(width=0)))
 
     return fig
+
+
+
+
+def search_similar_fires(df, discovery_month, vegetation):
+
+    query_array = np.array([19.0, -67.0, 3.3, 80]).reshape(1,-1)
+
+    df_filtered = df[(df['discovery_month']==discovery_month) & (df['Vegetation']==vegetation)]
+    df_filtered_withclass = df_filtered[['ID', 'latitude', 'longitude',  'fire_size_class', 'Wind_cont', 'Hum_cont']]
+    df_onlynumeric = df_filtered[['latitude', 'longitude', 'Wind_cont', 'Hum_cont']]
+    
+    data_array = df_onlynumeric.values
+
+    # Compute the cosine similarity between the query vector and all article vectors
+    similarity_scores = cosine_similarity(data_array, query_array)
+
+    # Get the indices of the most similar articles
+    most_similar_indices = similarity_scores.argsort(axis=0)[::-1][:10]
+    most_similar_indices = [x[0] for x in most_similar_indices]
+    sim = [similarity_scores[i][0] for i in most_similar_indices]
+    
+    sorted_df = df_filtered.iloc[most_similar_indices, :]
+    sorted_df['similarity_score'] = sim
+    sorted_df.sort_values(by=['fire_size_class','similarity_score'], inplace=True,
+               ascending = [False, True])
+
+    return sorted_df
+
+# simfires = search_similar_fires(df, 7, 12)
