@@ -287,6 +287,7 @@ app.layout = html.Div([
             ], width=4),
         ], id="row1", style={'margin':'auto'}, align='center', justify='center'),
 
+    # Second row containing the cards for getting the user input
     dbc.Form(
         dbc.Row([
             dbc.Col(card_lat),
@@ -300,6 +301,8 @@ app.layout = html.Div([
             html.Div(id='output-div')
         ], id="row2", style={'margin':'auto'}, align='center', justify='center')),
 
+    # Third row containing the three plots at the bottom.
+    # The polar plot, state map, and bar chart.
     dbc.Row([
         dbc.Col([
             card_polar
@@ -320,14 +323,16 @@ app.layout = html.Div([
 
 @app.callback(
     Output("large_map", component_property="figure"),
-    [Input("years_slider", component_property="value"),
-     Input("large_map", component_property="clickData")],
+    Input("years_slider", component_property="value"),
 )
 
-def update_map(value, clickData):
-    
-    # filtered_data = df[(df["disc_clean_date"].dt.year >= value[0]) & (df["disc_clean_date"].dt.year <= value[1])]
-    fig = data.create_fire_map(df, mapbox_access_token)
+def update_map(value):
+    '''
+    Updates the large map based on the rangeslider input.
+    '''
+
+    filtered_data = df[(df["disc_clean_date"].dt.year >= value[0]) & (df["disc_clean_date"].dt.year <= value[1])]
+    fig = data.create_fire_map(filtered_data, mapbox_access_token)
 
     return fig
 
@@ -337,16 +342,21 @@ def update_map(value, clickData):
 )
 
 def update_clickinfo(clickData):
+    '''
+    Updates the information list that is seen on the card to the right of the map
+    Based on what fire the user clicked on on the map.
+    '''
 
-    # Filter the fire data based on the size threshold
     if clickData == None:
         return ''
 
     else:
+        # Search for the corresponding data entry in the dataframe
         latitude = clickData['points'][0]['lat']
         longitude = clickData['points'][0]['lon']
         clicked_fire = df[(df['latitude']==latitude) & (df['longitude']==longitude)]
 
+        # Color mapping dict used for coloring the list according to the Fire Size Class
         color_mapping = {
             'B': '#FAA307',
             'C': '#F4BE06',
@@ -356,8 +366,10 @@ def update_clickinfo(clickData):
             'G': '#43030b',
             }
         
+        # Determine color
         color_listgroup = color_mapping[clicked_fire['fire_size_class'].values[0]]
 
+        # Change the font color to lightgrey if the background is too dark
         if color_listgroup == '#43030b' or color_listgroup == '#9D0208':
             selected_info_list = dbc.ListGroup(
             [
@@ -384,8 +396,6 @@ def update_clickinfo(clickData):
 
             ], flush=False)
             
-        
-
         return selected_info_list
     
 @app.callback(
@@ -394,14 +404,16 @@ def update_clickinfo(clickData):
 )
 
 def update_clickedheader(clickData):
+    '''
+    Updates the header that is seen on the card to the right of the map
+    Based on what fire the user clicked on on the map.
+    '''
 
-    # Filter the fire data based on the size threshold
     if clickData == None:
         return 'No fire selected'
     else:
         latitude = clickData['points'][0]['lat']
         longitude = clickData['points'][0]['lon']
-        print(clickData['points'])
         clicked_fire = df[(df['latitude']==latitude) & (df['longitude']==longitude)]
         return f'{clicked_fire["fire_name"].values[0]}'
 
@@ -412,6 +424,9 @@ def update_clickedheader(clickData):
 )
 
 def update_state_map(children):
+    '''
+    Updates the State Map Plot.
+    '''
     fig = data.create_state_map(df)
     return fig
 
@@ -422,11 +437,17 @@ def update_state_map(children):
 )
 
 def update_polar_plot(dropdown_value, hov_data):
+    '''
+    Creates a Polar plot of the total number of fires per month.
+    If user hovers over the State Map, the Polar plot changes to show only data on that particular state.
+    User can choose beween Total NR of Fires and Avg Number of Fires via a Dropdown.
+    '''
     if dropdown_value == 'Total fires':
         if hov_data is None:
             fig = data.create_polar_plot(df)
         
         elif hov_data is not None:
+            # Determine the state and filter the df
             hov_location = hov_data['points'][0]['location']
             df_hov = df[df.state == hov_location]
             fig = data.create_polar_plot(df_hov)
@@ -436,6 +457,7 @@ def update_polar_plot(dropdown_value, hov_data):
             fig = data.create_polar_plot(df, avg_fire_size=True)
         
         elif hov_data is not None:
+            # Determine the state and filter the df
             hov_location = hov_data['points'][0]['location']
             df_hov = df[df.state == hov_location]
             fig = data.create_polar_plot(df_hov, avg_fire_size=True)
@@ -447,11 +469,17 @@ def update_polar_plot(dropdown_value, hov_data):
     Input("state_map", component_property='hoverData')
 )
 
-def update_state_map(hov_data):
+def update_bar_chart(hov_data):
+    '''
+    Creates a bar chart showing the most frequent causes of fires.
+    If there is no hover data, it will show the total over the whole country.
+    Otherwise shows information on a particular state.
+    '''
     if hov_data is None:
         fig = data.create_bar_plot(df)
         
     elif hov_data is not None:
+        # Determine the state and filter the df
         hov_location = hov_data['points'][0]['location']
         df_hov = df[df.state == hov_location]
         fig = data.create_bar_plot(df_hov)
@@ -474,58 +502,37 @@ def update_state_map(hov_data):
     prevent_initial_call=True
 )
 def process_form_data(n_clicks, lat, long, discm, veg, temp, wind, hum, current_figure):
+    '''
+    Processes the user inputted data and searches for the most similar fires.
+    Displays the most similar fires in a DataTable on the right of the large map, and shows them as Selected on the large map.
+    Also predicts the Fire Size Class and Putout Time of the fire that the user inputted.
+    '''
+
     if n_clicks is None:
-        
         return current_figure, '', ''
 
     else: 
+        # If no similar entries can be found, catch a ValueError that comes up and display a warning.
         try:
-            # Your code that may raise the ValueError
+            # Get similar fires and the predicted class
             similar_fires, predicted_class = data.search_similar_fires(df, lat, long, discm, veg, temp, wind, hum)
+            
             top10 = []
+            # Retrieve the matching entries in the main df 
+            # (the other one can be filtered)
             for index, row in similar_fires.iterrows():
                 matching_row_index = df[df['ID'] == row['ID']]
                 top10.append(matching_row_index.index[0])
             
+            # Get the top 5 most similar fires
             top5 = top10[:5]
+
+            # Create new plot and highlight the top 5 similar fires on the large map.
             fig = data.create_fire_map(df, mapbox_access_token)
-            
-            df_datatable = df.loc[top5]
-            lats = df_datatable.latitude.values
-            longs = df_datatable.longitude.values
-
-            # for trace in fig['data']:
-            #     latitudes = trace['lat']
-            #     longitudes = trace['lon']
-            #     coordinates = zip(latitudes, longitudes)
-            #     for i, j in coordinates:
-            #         if i == lats
-            #     point_indexes = list(range(len(latitudes)))
-            #     all_point_indexes.extend(point_indexes)
-
-
-            
-            # # Make a deep copy of the current_figure to avoid modifying the original data
-            
-            print(df_datatable)
-            # update_dict = {'B':[],
-            #           'C':[] ,
-            #           'D':[],
-            #           'E':[],
-            #           'F':[],
-            #           'G':[]}
-            
-            # for index, row in df_datatable.iterrows():
-            #     fire_class = row['fire_size_class']
-            #     update_dict[fire_class].append(index)
-            # print(update_dict)
-            # for trace in current_figure['data']:
-            #     trace['selectedpoints'] = top5
-
-            # print(update_dict[trace['name']])
-        
             fig.update_traces(selectedpoints=top5)
-            
+
+            # Create the datatable for the most similar fires
+            df_datatable = df.loc[top5]
             df_datatable = df_datatable[['fire_name', 'fire_size', 'fire_size_class', 'disc_clean_date']]
             most_similar_fires = dash_table.DataTable(
                 columns=[
@@ -541,7 +548,7 @@ def process_form_data(n_clicks, lat, long, discm, veg, temp, wind, hum, current_
                 id='datatable_fires'
             )
 
-
+            # Format the prediction
             prediction = f'Predicted putout time: {predicted_class}'
 
             return fig, most_similar_fires, prediction
