@@ -28,16 +28,11 @@ colors = {
 mapbox_access_token = 'pk.eyJ1IjoiZnJpZWRyaWNlIiwiYSI6ImNsazl6M3NobTAyeXkzbHM1MzkzMHY0MHYifQ.qNFa2-YSY3sYOhux8EqaQg'
 
 # Preprocessing the data
-df = pd.read_csv('FW_Veg_Rem_Combined.csv')
+df = pd.read_csv('fire_data.csv')
 df['disc_clean_date'] = pd.to_datetime(df['disc_clean_date'])
 df = df.rename(columns={'Unnamed: 0': 'ID'})
 df['fire_name'] = df['fire_name'].fillna(value='UNNAMED')
 df['discovery_month'] = df.disc_clean_date.dt.month
-
-# # Normalize the fire_size column
-# min_fire_size = df['fire_size'].min()
-# max_fire_size = df['fire_size'].max()
-# df['fire_size_norm'] = (df['fire_size'] - min_fire_size) / (max_fire_size - min_fire_size)
 
 # Ensure lat and long are passed as floats
 df['latitude'] = df['latitude'].astype(float)

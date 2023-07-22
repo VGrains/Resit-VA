@@ -243,7 +243,7 @@ def search_similar_fires(df, latitude, longitude, discovery_month, vegetation, t
                ascending = [False, True])
 
     # Load the Decision Tree Classifier and predict the fire size class
-    DTC = joblib.load('SVM.joblib')
+    DTC = joblib.load('SVM2.joblib')
     predicted_class = DTC.predict(query_array_predict)
 
     # Load the Decision Tree Classifier and predict the fire size class
