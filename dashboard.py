@@ -125,7 +125,7 @@ card_extra = dbc.Card([
     html.H2('Predicted Fire Size Class: No prediction', style={'color':'#cc4e5b'}, className='m-4', id='class_predict'),
     html.H2('Predicted Fire Putout time: No prediction', style={'color':'#cc4e5b'}, className='m-4', id='putout_time')
     ])
-], color='#242424', class_name='m-4', style={'height':'350px'})
+], color='#242424', class_name='m-4', style={'height':'450px'})
 
 ##################################################################################################################
 ##############################   CARDS FOR USER INPUT ###########################################################
@@ -555,11 +555,12 @@ def process_form_data(n_clicks, lat, long, discm, veg, temp, wind, hum, current_
 
             # Format the predictions
             prediction_class = f'Predicted Fire Size Class: {predicted_class}'
-            prediction_time = f'Predicted Fire Putout Time: {predicted_putouttime}'
+            prediction_time = f'Predicted Fire Putout Time: {predicted_putouttime} days'
 
             return fig, most_similar_fires, prediction_class, prediction_time
 
         except ValueError as e:
+            print(e)
             # Catch the ValueError and turn it into a warning
             alert = dbc.Alert(
                 "No fires were found, try using other data.",

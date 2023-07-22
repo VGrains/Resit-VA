@@ -243,26 +243,26 @@ def search_similar_fires(df, latitude, longitude, discovery_month, vegetation, t
                ascending = [False, True])
 
     # Load the Decision Tree Classifier and predict the fire size class
-
-    with open('model2.pickle', 'rb') as f:
-        DTC = pickle.load(f)
-    # DTC = joblib.load('DC.joblib')
+    DTC = joblib.load('SVM.joblib')
     predicted_class = DTC.predict(query_array_predict)
 
+    # Load the Decision Tree Classifier and predict the fire size class
+    NN = joblib.load('ANN_reg2.joblib')
+    predicted_putout = NN.predict(query_array_predict)
+    predicted_putout = round(float(predicted_putout[0]), 2)
     # Map the predicted class to its string representation
     class_mapping = {
-        1:'B',
-        2:'C',
-        3:'D',
-        4:'E',
-        5:'F',
-        6:'G'
+        0:'B',
+        1:'C',
+        2:'D',
+        3:'E',
+        4:'F',
+        5:'G'
         }
     
     correct_class = class_mapping[predicted_class[0]]
-    putout_time = '-'
 
-    return sorted_df, correct_class, putout_time
+    return sorted_df, correct_class, predicted_putout
 
     
     
