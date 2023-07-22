@@ -16,37 +16,37 @@ import copy
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.SANDSTONE])
 
-
+# Basic app colors 
 colors = {
     'background': '#474747',
     'cards': '#242424',
     'red': '#cc4e5b'
 }
 
+# Access token for the large map
 mapbox_access_token = 'pk.eyJ1IjoiZnJpZWRyaWNlIiwiYSI6ImNsazl6M3NobTAyeXkzbHM1MzkzMHY0MHYifQ.qNFa2-YSY3sYOhux8EqaQg'
-mapbox_style_url = 'mapbox://styles/friedrice/clk9ys5wi00sa01pe9jo7cmmz'
 
+# Preprocessing the data
 df = pd.read_csv('FW_Veg_Rem_Combined.csv')
 df['disc_clean_date'] = pd.to_datetime(df['disc_clean_date'])
-# df.sort_values(by='disc_clean_date', inplace = True) 
 df = df.rename(columns={'Unnamed: 0': 'ID'})
 df['fire_name'] = df['fire_name'].fillna(value='UNNAMED')
 df['discovery_month'] = df.disc_clean_date.dt.month
 
-# Normalize the fire_size column
-min_fire_size = df['fire_size'].min()
-max_fire_size = df['fire_size'].max()
-df['fire_size_norm'] = (df['fire_size'] - min_fire_size) / (max_fire_size - min_fire_size)
-
-
+# # Normalize the fire_size column
+# min_fire_size = df['fire_size'].min()
+# max_fire_size = df['fire_size'].max()
+# df['fire_size_norm'] = (df['fire_size'] - min_fire_size) / (max_fire_size - min_fire_size)
 
 # Ensure lat and long are passed as floats
 df['latitude'] = df['latitude'].astype(float)
 df['longitude'] = df['longitude'].astype(float)
 
+# Sort values on Fire Size Class
 df.sort_values('fire_size_class', inplace=True)
 df = df.reset_index()
 
+# Size mapping for the markers
 size_mapping = {
         'B': 1,
         'C': 2,
@@ -54,12 +54,17 @@ size_mapping = {
         'E': 8,
         'F': 16,
         'G': 32,
-        # Add more mappings as needed based on your data
     }
 
 df['size_marker'] = df["fire_size_class"].map(size_mapping)
 
+# Years for the range slider
 YEARS = [x for x in range(1992, 2016)] 
+
+##################################################################################################################
+##############################   CARDS FOR RANGESLIDER & LARGE MAP ################################################
+##################################################################################################################
+
 
 card_slider = dbc.Card([
     dbc.CardBody([
@@ -79,37 +84,51 @@ card_largemap = dbc.Card([
     dbc.CardBody([
         dcc.Graph(
                 id="large_map", 
-                figure={} 
-                # style={'width':'100%', 'margin':25, 'border': '1px solid smokegray'}
+                figure={}
             )
     ])
 ], color='#242424', class_name='m-4')
 
+
+##################################################################################################################
+##############################   FIRE INFO CARD & PREDICTION CARD ################################################
+##################################################################################################################
+
 card_info = dbc.Card([
-    dbc.CardHeader(f'Chosen fire: ', id='clickheader', style={'color':'white'}),
-    dbc.CardBody([], id='clickinfo')
+    dbc.CardHeader(
+        f'Chosen fire: ', id='clickheader', style={'color':'white'}
+        ),
+    dbc.CardBody([
+
+    ], id='clickinfo')
 ], color='#242424', class_name='m-4', style={'height':'400px'})
 
 card_extra = dbc.Card([
     dbc.CardHeader([
         
     ]),
-    dbc.CardBody([html.Div([
-        dash_table.DataTable(
-        columns=[
-            {'name': 'Fire Name', 'id': 'fire_name'},
-            {'name': 'Fire Size', 'id': 'fire_size'},
-            {'name': 'Fire Size Class', 'id': 'fire_size_class'},
-            {'name': 'Discovery Date', 'id': 'disc_clean_date'}
-        ],
-        row_selectable='multi',
-        selected_row_ids=[],
-        selected_rows=[],
-        id='datatable_fires'
+    dbc.CardBody([
+        html.Div([
+            dash_table.DataTable(
+            columns=[
+                {'name': 'Fire Name', 'id': 'fire_name'},
+                {'name': 'Fire Size', 'id': 'fire_size'},
+                {'name': 'Fire Size Class', 'id': 'fire_size_class'},
+                {'name': 'Discovery Date', 'id': 'disc_clean_date'}
+            ],
+            row_selectable='multi',
+            selected_row_ids=[],
+            selected_rows=[],
+            id='datatable_fires'
     )], id='model_results'), 
     html.H2('Predicted putout time: No prediction', style={'color':'#cc4e5b'}, className='m-4', id='putout_time')
     ])
 ], color='#242424', class_name='m-4', style={'height':'350px'})
+
+##################################################################################################################
+##############################   CARDS FOR USER INPUT ###########################################################
+##################################################################################################################
+
 
 card_lat = dbc.Card([
     dbc.CardHeader([
@@ -195,6 +214,10 @@ card_hum = dbc.Card([
         )
 ], color='#242424', class_name='m-4')
 
+##################################################################################################################
+###########################   CARDS ON BOTTOM ROW. POLARCHART, STATE MAP AND BARCHART ############################
+##################################################################################################################
+
 card_polar = dbc.Card([
     dbc.CardHeader([
         dcc.Dropdown(
@@ -208,7 +231,6 @@ card_polar = dbc.Card([
         dcc.Graph(
                 id="polar", 
                 figure={} 
-                # style={'width':'100%', 'margin':25, 'border': '1px solid smokegray'}
             )
     ])
 ], color='#242424', class_name='m-4')
@@ -224,7 +246,6 @@ card_state = dbc.Card([
         dcc.Graph(
                 id="state_map", 
                 figure={}, 
-                # style={'width':'100%', 'margin':25, 'border': '1px solid smokegray'}
             )
     ])
 ], color='#242424', class_name='m-4')
@@ -239,18 +260,22 @@ card_barchart = dbc.Card([
         dcc.Graph(
                 id="bar", 
                 figure={} 
-                # style={'width':'100%', 'margin':25, 'border': '1px solid smokegray'}
             )
     ])
 ], color='#242424', class_name='m-4')
 
-
+##################################################################################################################
+#########################################   APP LAYOUT   #########################################################
+##################################################################################################################
 
 app.layout = html.Div([ 
     html.Div([
+    # Large header
     html.H1('Forest Fire Analysis', style={'padding':'20px', 'textAlign': 'center', 'font-family': 'Georgia, serif', 'color': '#cc4e5b'})
     ]),
 
+    # First row containing the rangeslider and large_map card, as well as the card with the fire info and datatable card 
+    # in a seperate column.
     dbc.Row([
         dbc.Col([
             card_slider,
@@ -287,6 +312,11 @@ app.layout = html.Div([
         ], width=4)
     ], align='center', justify='center'),
 ], id='row3', style={'backgroundColor': '#474747'})
+
+##################################################################################################################
+##############################   THE CALLBACK     #############################################################
+##################################################################################################################
+
 
 @app.callback(
     Output("large_map", component_property="figure"),

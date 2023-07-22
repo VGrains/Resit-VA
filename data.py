@@ -273,7 +273,7 @@ def create_bar_plot(df):
 def search_similar_fires(df, latitude, longitude, discovery_month, vegetation, temperature, wind, humidity):
 
     query_array = np.array([latitude, longitude, temperature, wind, humidity]).reshape(1,-1)
-    query_array_predict = pd.DataFrame(np.array([latitude, longitude, discovery_month, vegetation, temperature, wind, humidity]).reshape(1, -1))
+    query_array_predict = np.array([discovery_month, vegetation, latitude, longitude, temperature, wind, humidity]).reshape(1, -1)
 
     df_filtered = df[(df['discovery_month']==discovery_month) & (df['Vegetation']==vegetation)]
     # df_filtered_withclass = df_filtered[['ID', 'latitude', 'longitude',  'fire_size_class', 'Temp_pre_7', 'Wind_pre_7', 'Hum_pre_7']]
