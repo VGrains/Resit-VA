@@ -1,4 +1,5 @@
-from dash import Dash, dcc, Output, Input, State, html, dash_table  # pip install dash
+from dash import Dash, dcc, Output, Input, State, html, dash_table
+from dash.exceptions import PreventUpdate# pip install dash
 import dash_bootstrap_components as dbc    # pip install dash-bootstrap-components
 import data
 import plotly.express as px
@@ -104,9 +105,9 @@ card_info = dbc.Card([
 ], color='#242424', class_name='m-4', style={'height':'400px'})
 
 card_extra = dbc.Card([
-    dbc.CardHeader([
-        
-    ]),
+    dbc.CardHeader(
+        "Most similar fires", style={'color':'lightgrey'}
+    ),
     dbc.CardBody([
         html.Div([
             dash_table.DataTable(
@@ -121,7 +122,8 @@ card_extra = dbc.Card([
             selected_rows=[],
             id='datatable_fires'
     )], id='model_results'), 
-    html.H2('Predicted putout time: No prediction', style={'color':'#cc4e5b'}, className='m-4', id='putout_time')
+    html.H2('Predicted Fire Size Class: No prediction', style={'color':'#cc4e5b'}, className='m-4', id='class_predict'),
+    html.H2('Predicted Fire Putout time: No prediction', style={'color':'#cc4e5b'}, className='m-4', id='putout_time')
     ])
 ], color='#242424', class_name='m-4', style={'height':'350px'})
 
@@ -156,7 +158,7 @@ card_lon = dbc.Card([
 
 card_discm = dbc.Card([
     dbc.CardHeader([
-        'Discovery month in numbers (Jan = 1)'   
+        'Discovery month as number'   
     ], style={'color':'#cc4e5b'}),
         dcc.Input(
             id="input_discm",
@@ -192,7 +194,7 @@ card_temp = dbc.Card([
 
 card_wind = dbc.Card([
     dbc.CardHeader([
-        'Windspeed'   
+        'Windspeed last 7 days (avg)'   
     ], style={'color':'#cc4e5b'}),
         dcc.Input(
             id="input_wind",
@@ -204,7 +206,7 @@ card_wind = dbc.Card([
 
 card_hum = dbc.Card([
     dbc.CardHeader([
-        'Humidity'   
+        'Humidity last 7 days (avg)'   
     ], style={'color':'#cc4e5b'}),
         dcc.Input(
             id="input_hum",
@@ -489,6 +491,7 @@ def update_bar_chart(hov_data):
 @app.callback(
     [Output('large_map', 'figure', allow_duplicate=True),
      Output("model_results", component_property="children"),
+     Output("class_predict", component_property="children"),
      Output("putout_time", component_property="children")],
     [Input('submit_fire_info', 'n_clicks')],
     [State("input_lat", "value"),
@@ -515,7 +518,7 @@ def process_form_data(n_clicks, lat, long, discm, veg, temp, wind, hum, current_
         # If no similar entries can be found, catch a ValueError that comes up and display a warning.
         try:
             # Get similar fires and the predicted class
-            similar_fires, predicted_class = data.search_similar_fires(df, lat, long, discm, veg, temp, wind, hum)
+            similar_fires, predicted_class, predicted_putouttime = data.search_similar_fires(df, lat, long, discm, veg, temp, wind, hum)
             
             top10 = []
             # Retrieve the matching entries in the main df 
@@ -534,61 +537,61 @@ def process_form_data(n_clicks, lat, long, discm, veg, temp, wind, hum, current_
             # Create the datatable for the most similar fires
             df_datatable = df.loc[top5]
             df_datatable = df_datatable[['fire_name', 'fire_size', 'fire_size_class', 'disc_clean_date']]
+            df_datatable['Index'] = df_datatable.index
             most_similar_fires = dash_table.DataTable(
                 columns=[
+                    {'name': 'Index', 'id':'index'},
                     {'name': 'Fire Name', 'id': 'fire_name'},
                     {'name': 'Fire Size', 'id': 'fire_size'},
-                    {'name': 'Fire Size Class', 'id': 'fire_size_class'},
+                    {'name': 'Class', 'id': 'fire_size_class'},
                     {'name': 'Discovery Date', 'id': 'disc_clean_date'}
                 ],
                 data=df_datatable.to_dict('records'),
                 row_selectable='multi',
                 selected_row_ids=[],
-                selected_rows=[],
+                selected_rows=[0,1,2,3,4],
                 id='datatable_fires'
             )
 
-            # Format the prediction
-            prediction = f'Predicted putout time: {predicted_class}'
+            # Format the predictions
+            prediction_class = f'Predicted Fire Size Class: {predicted_class}'
+            prediction_time = f'Predicted Fire Putout Time: {predicted_putouttime}'
 
-            return fig, most_similar_fires, prediction
+            return fig, most_similar_fires, prediction_class, prediction_time
 
         except ValueError as e:
             # Catch the ValueError and turn it into a warning
-            warnings.warn(str(e))
-            return None  # Retur
+            alert = dbc.Alert(
+                "No fires were found, try using other data.",
+                id="alert-fade",
+                dismissable=True,
+                is_open=True,
+                color="danger"
+                ),
+              
+            return current_figure, alert, '', ''
     
+@app.callback(
+    Output("large_map", component_property='figure', allow_duplicate=True),
+    [Input("datatable_fires", component_property='derived_virtual_data'), 
+    Input("datatable_fires", component_property='selected_rows')],
+    prevent_initial_call=True
+)
 
-# @app.callback(
-#     Output("putout_time", component_property='children'),
-#     Input("datatable_fires", component_property='selected_row_ids'),
-#     State('large_map', 'figure'), prevent_initial_call=True
-# )
+def update_large_map_from_datatable(derived_virtual_data, selected_rows):
+    '''
+    Displays the selected points in the datatable on the large map
+    '''
+    if not selected_rows:
+        raise PreventUpdate
+    else:
+        # Get the actual DataFrame indexes of the selected rows
+        actual_indexes = [derived_virtual_data[index]['Index'] for index in selected_rows]
 
-# def update_large_map_from_datatable(selected_rows, current_figure):
-#     if selected_rows is None:
-#         pass
- 
-#     else:
-#         fig = go.Figure(current_figure)
-#         fig.update_traces(selectedpoints=selected_rows)
+        # Create updated figure
+        fig = data.create_fire_map(df, mapbox_access_token)
+        fig.update_traces(selectedpoints=actual_indexes)
         return fig
-    
-
-# @app.callback(
-#     Output("putout_time", component_property='children', allow_duplicate=True),
-#     Input("datatable_fires", component_property='selected_row_ids'),
-#     State('large_map', 'figure'), prevent_initial_call=True
-# )
-
-# def update_large_map_from_datatable(selected_rows, current_figure):
-#     if selected_rows is None:
-#         pass
- 
-#     else:
-#         fig = go.Figure(current_figure)
-#         fig.update_traces(selectedpoints=selected_rows)
-#         return fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)

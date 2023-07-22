@@ -14,11 +14,15 @@ import plotly.graph_objects as go
 import plotly.express as px
 import copy
 import joblib
+import pickle
 
 pd.options.mode.chained_assignment = None  
 
 def create_fire_map(df, mapbox_access_token):
-    
+    '''
+    Creates the large bubble map indicating all the fires. 
+    Requires a dataframe and a mapbox access token.
+    '''
     # Dictionary to map fire_size_class values to specific colors
     color_mapping = {
         'B': '#FAA307',
@@ -99,7 +103,10 @@ def create_fire_map(df, mapbox_access_token):
     return fig
 
 def create_state_map(df):
-
+    '''
+    Creates the small State Chloropleth map with the total amount of fires per state. 
+    Requires a dataframe.
+    '''
     # Use a copy of the main dataframe
     dff = copy.copy(df[['state', 'fire_size']])
 
@@ -132,7 +139,10 @@ def create_state_map(df):
     return fig
 
 def create_polar_plot(df, avg_fire_size=False):
-    
+    '''
+    Creates the small Polar plot indicating the number of fires per month, or the average size of the fires per month. 
+    Requires a dataframe and a boolean to indicate which representation is wanted.
+    '''
     # Dictionary to map month names to numeric representation
     month_dict = {
         1: "January",
@@ -177,7 +187,10 @@ def create_polar_plot(df, avg_fire_size=False):
     return fig
 
 def create_bar_plot(df):
-
+    '''
+    Creates the small bar chart indicating frequencies per fire cause. 
+    Requires a dataframe.
+    '''
     # Use a copy of the main dataframe
     df1 = copy.copy(df[['stat_cause_descr', 'fire_size']])
 
@@ -196,6 +209,15 @@ def create_bar_plot(df):
     return fig
 
 def search_similar_fires(df, latitude, longitude, discovery_month, vegetation, temperature, wind, humidity):
+    '''
+    Searches for similar fires based on the user input using cosine similarity. 
+    !! First filters the dataframe on the user-inputted discovery_month and vegetation code !!
+    This might be removed in the future if the results are too few too often.
+
+    Also predicts the fire_size_class and putout_time based on the user input with around 67% accuracy.
+    Loads a trained model stored in a picke file.
+    Requires a dataframe and all the inputted form data from the dbc.Form.
+    '''
 
     # Define a user query array for calculating cosine similarity, and a query_array_predict for the prediction task
     query_array = np.array([latitude, longitude, temperature, wind, humidity]).reshape(1,-1)
@@ -221,7 +243,10 @@ def search_similar_fires(df, latitude, longitude, discovery_month, vegetation, t
                ascending = [False, True])
 
     # Load the Decision Tree Classifier and predict the fire size class
-    DTC = joblib.load('DC.joblib')
+
+    with open('model2.pickle', 'rb') as f:
+        DTC = pickle.load(f)
+    # DTC = joblib.load('DC.joblib')
     predicted_class = DTC.predict(query_array_predict)
 
     # Map the predicted class to its string representation
@@ -233,8 +258,11 @@ def search_similar_fires(df, latitude, longitude, discovery_month, vegetation, t
         5:'F',
         6:'G'
         }
+    
+    correct_class = class_mapping[predicted_class[0]]
+    putout_time = '-'
 
-    return sorted_df, predicted_class
+    return sorted_df, correct_class, putout_time
 
     
     
