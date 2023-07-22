@@ -1,20 +1,10 @@
 import pandas as pd
 import numpy as np
-import math
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.metrics import classification_report
-from sklearn.preprocessing import MinMaxScaler, StandardScaler,LabelEncoder
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.decomposition import PCA
-import folium
-from folium.plugins import HeatMap, HeatMapWithTime
-import sqlite3
 import plotly.graph_objects as go
 import plotly.express as px
 import copy
 import joblib
-import pickle
 
 pd.options.mode.chained_assignment = None  
 

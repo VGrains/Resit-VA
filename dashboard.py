@@ -1,17 +1,8 @@
 from dash import Dash, dcc, Output, Input, State, html, dash_table
-from dash.exceptions import PreventUpdate# pip install dash
-import dash_bootstrap_components as dbc    # pip install dash-bootstrap-components
+from dash.exceptions import PreventUpdate
+import dash_bootstrap_components as dbc    
 import data
-import plotly.express as px
-from sklearn.feature_extraction.text import TfidfVectorizer
-import plotly.graph_objects as go
-from sklearn.model_selection import cross_validate
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
 import pandas as pd
-import dash_leaflet as dl
-import warnings
-import copy
 
 
 
