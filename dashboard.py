@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import pandas as pd
 import dash_leaflet as dl
+import warnings
 import copy
 
 
@@ -511,9 +512,9 @@ def process_form_data(n_clicks, lat, long, discm, veg, temp, wind, hum, current_
             )
 
 
-            
+            prediction = f'Predicted putout time: {predicted_class}'
 
-            return fig, most_similar_fires, predicted_class
+            return fig, most_similar_fires, prediction
 
         except ValueError as e:
             # Catch the ValueError and turn it into a warning
